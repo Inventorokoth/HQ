@@ -1,3 +1,8 @@
-# Add real dependencies when integrating real playback or youtube support
-# e.g. yt-dlp, pytube, pydub, pygame, sounddevice
+# Core dependencies
+yt-dlp>=2024.1.0
+python-vlc>=3.0.0
+requests>=2.28.0
 
+# Voice input dependencies
+SpeechRecognition>=3.14.0
+pyaudio>=0.2.11

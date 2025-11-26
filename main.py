@@ -17,6 +17,7 @@ if PROJECT_ROOT not in sys.path:
 from src.youtube_client import YouTubeClient
 from src.player import MusicPlayer
 from src.command_parser import CommandParser
+from src.voice_input import VoiceCommandListener
 from src.utils import print_banner, format_duration, format_progress_bar, clear_screen
 from config.settings import settings
 
@@ -26,6 +27,7 @@ class MusicStreamApp:
         self.youtube = YouTubeClient()
         self.player = MusicPlayer()
         self.parser = CommandParser()
+        self.voice_listener = VoiceCommandListener()
         self.running = False
         
         # Setup player callbacks
@@ -170,6 +172,39 @@ class MusicStreamApp:
             duration = format_duration(result.get('duration', 0))
             print(f"{i}. {result.get('title', 'Unknown')} - {duration}")
     
+    def handle_voice(self):
+        """Handle voice input command."""
+        print("\n🎤 Activating voice control...")
+        voice_text = self.voice_listener.voice_play_command()
+        
+        if voice_text:
+            print(f"📝 Executing: {voice_text}")
+            # Parse the voice command as if user typed it
+            command, params = self.parser.parse(voice_text)
+            
+            # Execute the parsed command
+            if command == 'play':
+                self.handle_play(params)
+            elif command == 'pause':
+                self.player.pause()
+                print("⏸️ Playback paused")
+            elif command == 'resume':
+                self.player.resume()
+                print("▶️ Playback resumed")
+            elif command == 'stop':
+                self.player.stop()
+                print("⏹️ Playback stopped")
+            elif command == 'volume':
+                self.handle_volume(params)
+            elif command == 'search':
+                self.handle_search(params)
+            elif command == 'status':
+                self.display_status()
+            else:
+                print(f"❌ Voice command not recognized: {voice_text}")
+        else:
+            print("❌ Could not process voice input")
+    
     def run(self):
         """Main application loop."""
         clear_screen()
@@ -217,6 +252,9 @@ class MusicStreamApp:
                 
                 elif command == 'status':
                     self.display_status()
+                
+                elif command == 'voice':
+                    self.handle_voice()
                 
                 elif command == 'help':
                     print_banner()

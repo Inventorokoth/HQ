@@ -41,6 +41,7 @@ def print_banner():
       seek <0.0-1.0>     - Seek to position
       search <query>     - Search for music
       status             - Show player status
+      voice              - Voice control (speak commands)
       help               - Show this help
       exit               - Exit application
     =========================

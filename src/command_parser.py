@@ -14,6 +14,7 @@ class CommandParser:
             'search': self._parse_search,
             'status': self._parse_simple,
             'help': self._parse_simple,
+            'voice': self._parse_simple,
             'exit': self._parse_simple,
         }
     
