@@ -37,3 +37,4 @@ To (re)install the example dependencies into the venv:
 source .venv/bin/activate
 python -m pip install -r requirements.txt  # or pip install yt-dlp python-vlc requests
 ```
+# HQ
