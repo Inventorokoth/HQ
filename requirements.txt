@@ -1,0 +1,3 @@
+# Add real dependencies when integrating real playback or youtube support
+# e.g. yt-dlp, pytube, pydub, pygame, sounddevice
+
