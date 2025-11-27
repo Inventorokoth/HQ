@@ -1,0 +1,57 @@
+{
+  "artists": {
+    "backbencher": {
+      "canonical": "Backbencher",
+      "nicknames": ["backbencher", "bb", "back bencher"],
+      "languages": ["sw"],
+      "genres": ["afrobeats", "hiphop", "east_african"],
+      "country": "Kenya",
+      "description": "East African hip-hop artist known for witty lyrics and social commentary"
+    },
+    "diamond_platnumz": {
+      "canonical": "Diamond Platnumz",
+      "nicknames": ["diamond", "dpz", "diamond platnumz"],
+      "languages": ["sw"],
+      "genres": ["afrobeats", "tanzanian", "bongo flava"],
+      "country": "Tanzania",
+      "description": "Tanzanian afrobeats superstar"
+    },
+    "wizkid": {
+      "canonical": "Wizkid",
+      "nicknames": ["wizkid", "wiz", "ayo balogun"],
+      "languages": ["sw", "en"],
+      "genres": ["afrobeats", "nigerian"],
+      "country": "Nigeria",
+      "description": "Nigerian global afrobeats artist"
+    },
+    "sia": {
+      "canonical": "Sia",
+      "nicknames": ["sia", "sia furler"],
+      "languages": ["en"],
+      "genres": ["pop", "electropop", "indie pop"],
+      "country": "Australia",
+      "description": "Australian singer-songwriter known for powerful vocals"
+    },
+    "burna_boy": {
+      "canonical": "Burna Boy",
+      "nicknames": ["burna", "burna boy"],
+      "languages": ["en", "sw"],
+      "genres": ["afrobeats", "nigerian"],
+      "country": "Nigeria",
+      "description": "Nigerian afrobeats artist"
+    },
+    "rema": {
+      "canonical": "Rema",
+      "nicknames": ["rema", "divine ikubor"],
+      "languages": ["en", "sw"],
+      "genres": ["afrobeats", "nigerian"],
+      "country": "Nigeria",
+      "description": "Nigerian Afrobeats producer and artist"
+    }
+  },
+  "metadata": {
+    "last_updated": "2024",
+    "total_artists": 6,
+    "supported_languages": ["sw", "en", "es", "pt", "fr"]
+  }
+}

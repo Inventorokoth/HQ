@@ -202,12 +202,37 @@ class MusicStreamApp:
     def handle_voice(self):
         """Handle voice input command."""
         print("\n🎤 Activating voice control...")
-        voice_text = self.voice_listener.voice_play_command()
+        voice_result = self.voice_listener.voice_play_command()
         
-        if voice_text:
-            print(f"📝 Executing: {voice_text}")
-            # Parse the voice command as if user typed it
-            command, params = self.parser.parse(voice_text)
+        if voice_result:
+            # Check if we got a ParsedCommand object from NLU
+            if hasattr(voice_result, 'intent'):
+                # It's a ParsedCommand from NLU
+                parsed_cmd = voice_result
+                print(f"📝 Intent: {parsed_cmd.intent} | Confidence: {parsed_cmd.confidence:.1%}")
+                if parsed_cmd.entities:
+                    print(f"   Entities: {parsed_cmd.entities}")
+                
+                command = parsed_cmd.intent
+                
+                # Build params dict from ParsedCommand
+                params = parsed_cmd.entities.copy() if parsed_cmd.entities else {}
+                
+                # Add query field if not present (for play/search intents)
+                if 'query' not in params and command in ['play', 'search']:
+                    # Try to construct query from entities
+                    parts = []
+                    if 'artist' in params:
+                        parts.append(params['artist'])
+                    if 'song' in params:
+                        parts.append(params['song'])
+                    if 'album' in params:
+                        parts.append(params['album'])
+                    params['query'] = ' '.join(parts) if parts else parsed_cmd.original_text
+            else:
+                # It's a string from fallback mode - parse it normally
+                print(f"📝 Executing: {voice_result}")
+                command, params = self.parser.parse(str(voice_result))
             
             # Execute the parsed command
             if command == 'play':
@@ -228,7 +253,7 @@ class MusicStreamApp:
             elif command == 'status':
                 self.display_status()
             else:
-                print(f"❌ Voice command not recognized: {voice_text}")
+                print(f"❌ Voice command not recognized: {command}")
         else:
             print("❌ Could not process voice input")
     

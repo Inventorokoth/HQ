@@ -1,0 +1,57 @@
+{
+  "songs": {
+    "toxic": {
+      "canonical": "Toxic",
+      "artists": ["Backbencher"],
+      "aliases": ["toxic", "toxik", "toxics"],
+      "languages": ["sw", "en"],
+      "genre": "afrobeats",
+      "year": 2023
+    },
+    "cheap_thrills": {
+      "canonical": "Cheap Thrills",
+      "artists": ["Sia"],
+      "aliases": ["cheap thrills", "cheep thrills", "cheap thrills"],
+      "languages": ["en"],
+      "genre": "pop",
+      "year": 2016
+    },
+    "essence": {
+      "canonical": "Essence",
+      "artists": ["Wizkid", "Tems"],
+      "aliases": ["essence"],
+      "languages": ["en", "sw"],
+      "genre": "afrobeats",
+      "year": 2022
+    },
+    "as_it_was": {
+      "canonical": "As It Was",
+      "artists": ["Harry Styles"],
+      "aliases": ["as it was", "as it was harry styles"],
+      "languages": ["en"],
+      "genre": "pop",
+      "year": 2022
+    },
+    "levitating": {
+      "canonical": "Levitating",
+      "artists": ["Dua Lipa"],
+      "aliases": ["levitating", "levitating dua lipa"],
+      "languages": ["en"],
+      "genre": "pop",
+      "year": 2020
+    },
+    "beautiful": {
+      "canonical": "Beautiful",
+      "artists": ["Burna Boy"],
+      "aliases": ["beautiful", "beautiful burna"],
+      "languages": ["en", "sw"],
+      "genre": "afrobeats",
+      "year": 2023
+    }
+  },
+  "metadata": {
+    "last_updated": "2024",
+    "total_songs": 6,
+    "supported_languages": ["sw", "en", "es", "pt", "fr"]
+  }
+}

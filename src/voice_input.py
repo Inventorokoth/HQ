@@ -1,19 +1,52 @@
 """
 Voice input module for speech-to-text command recognition.
-Uses the SpeechRecognition library with Google's free speech API.
+
+Features:
+- Speech-to-text using Google's free speech API
+- NLU (Natural Language Understanding) for intent & entity extraction
+- Multi-language support (Swahili, English, Spanish, Portuguese, French)
+- Entity recognition (artist names, song titles with nickname support)
+- Fuzzy matching for slang and colloquial terms
 """
 
 import speech_recognition as sr
-from typing import Optional
+from typing import Optional, Dict
+from pathlib import Path
+import sys
+
+# Add src directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent))
+
+from nlu_engine import NLUEngine, ParsedCommand
+from entity_recognizer import EntityRecognizer
 
 
 class VoiceCommandListener:
-    """Listen to microphone input and convert speech to text commands."""
+    """Listen to microphone input and convert speech to text with NLU understanding."""
 
-    def __init__(self):
+    def __init__(self, enable_nlu: bool = True, primary_language: str = 'sw'):
+        """
+        Initialize voice command listener.
+        
+        Args:
+            enable_nlu: Enable Natural Language Understanding (default: True)
+            primary_language: Primary language for NLU (default: 'sw' for Swahili)
+        """
         self.recognizer = sr.Recognizer()
         self.recognizer.energy_threshold = 4000  # Adjust sensitivity
         self.recognizer.dynamic_energy_threshold = True
+        
+        # Initialize NLU if enabled
+        self.enable_nlu = enable_nlu
+        self.primary_language = primary_language
+        
+        if self.enable_nlu:
+            self.nlu_engine = NLUEngine()
+            self.entity_recognizer = EntityRecognizer()
+            print(f"✓ NLU engine initialized (Primary language: {primary_language})")
+        else:
+            self.nlu_engine = None
+            self.entity_recognizer = None
 
     def listen_for_command(self, timeout: int = 10) -> Optional[str]:
         """
@@ -56,27 +89,157 @@ class VoiceCommandListener:
             print(f"❌ Error: {e}")
             return None
 
-    def voice_play_command(self) -> Optional[str]:
+    def parse_command_with_nlu(self, text: str) -> ParsedCommand:
         """
-        Listen for a voice command and return a play command.
-        Example: User says "play sia cheap thrills" -> returns "play sia cheap thrills"
+        Parse voice command using NLU.
+        
+        Args:
+            text: Raw voice input text
+            
+        Returns:
+            ParsedCommand with intent, entities, and confidence
         """
-        command = self.listen_for_command()
-        if command:
-            # If user didn't say "play", add it
-            if not command.startswith("play"):
-                if "play" in command:
-                    # Extract the part after "play"
-                    idx = command.index("play")
-                    command = command[idx:]
-                else:
-                    command = f"play {command}"
-            return command
-        return None
+        if not self.enable_nlu or not self.nlu_engine:
+            # Fallback to basic parsing
+            return ParsedCommand(
+                intent='unknown',
+                entities={},
+                confidence=0.0,
+                original_text=text,
+                normalized_text=text.lower(),
+                language='unknown',
+            )
+        
+        # Parse with NLU engine
+        parsed = self.nlu_engine.parse(text)
+        
+        # Extract and resolve entities
+        if parsed.intent == 'play' or parsed.intent == 'search':
+            entities_list = self.entity_recognizer.extract_entities(
+                parsed.normalized_text,
+                detected_language=parsed.language,
+            )
+            
+            # Add recognized entities to parsed command
+            for entity in entities_list:
+                if entity.type == 'artist':
+                    parsed.entities['artist'] = entity.normalized_value
+                elif entity.type == 'song':
+                    parsed.entities['song'] = entity.normalized_value
+                elif entity.type == 'album':
+                    parsed.entities['album'] = entity.normalized_value
+        
+        return parsed
 
-    def voice_control(self) -> Optional[str]:
+    def voice_play_command(self) -> Optional[ParsedCommand]:
         """
-        Listen for a generic voice control command.
-        Returns the recognized text as-is.
+        Listen for a voice play command and parse it with NLU.
+        
+        Returns:
+            ParsedCommand with intent='play' and extracted entities (artist, song, etc.)
+            or None if no command recognized.
+            
+        Example:
+            User says "cheza backbencher ya toxic" (Swahili)
+            -> ParsedCommand(
+                intent='play',
+                entities={'artist': 'Backbencher', 'song': 'Toxic'},
+                confidence=0.95,
+                language='sw'
+            )
         """
-        return self.listen_for_command()
+        text = self.listen_for_command()
+        if not text:
+            return None
+        
+        if self.enable_nlu:
+            parsed = self.parse_command_with_nlu(text)
+            
+            # If intent isn't play, try to add it
+            if parsed.intent != 'play':
+                print(f"ℹ️  Detected intent: {parsed.intent} (confidence: {parsed.confidence:.1%})")
+                
+                # If not confident about intent, default to play for this method
+                if parsed.intent == 'unknown' or parsed.confidence < 0.5:
+                    parsed.intent = 'play'
+                    parsed.entities['query'] = text
+            
+            print(f"🎯 Intent: {parsed.intent} | Entities: {parsed.entities}")
+            return parsed
+        else:
+            # Fallback to basic parsing
+            if not text.startswith("play"):
+                if "play" in text:
+                    idx = text.index("play")
+                    text = text[idx:]
+                else:
+                    text = f"play {text}"
+            
+            return ParsedCommand(
+                intent='play',
+                entities={'query': text.replace('play ', '')},
+                confidence=0.7,
+                original_text=text,
+                normalized_text=text.lower(),
+                language=self.primary_language,
+            )
+
+    def voice_control(self) -> Optional[ParsedCommand]:
+        """
+        Listen for a generic voice control command with NLU parsing.
+        
+        Returns:
+            ParsedCommand with detected intent (play, pause, volume, etc.)
+            or None if no command recognized.
+        """
+        text = self.listen_for_command()
+        if not text:
+            return None
+        
+        if self.enable_nlu:
+            parsed = self.parse_command_with_nlu(text)
+            
+            if parsed.intent != 'unknown':
+                print(f"🎯 Intent: {parsed.intent} | Entities: {parsed.entities} | Confidence: {parsed.confidence:.1%}")
+            else:
+                print(f"⚠️  Could not determine intent. Trying as search query...")
+                parsed.intent = 'search'
+                parsed.entities['query'] = text
+            
+            return parsed
+        else:
+            # Fallback to basic parsing
+            return ParsedCommand(
+                intent='unknown',
+                entities={'query': text},
+                confidence=0.5,
+                original_text=text,
+                normalized_text=text.lower(),
+                language=self.primary_language,
+            )
+
+    def enable_language(self, language_code: str) -> None:
+        """
+        Enable support for a language.
+        
+        Args:
+            language_code: Language code (sw, en, es, pt, fr)
+        """
+        if self.enable_nlu and self.nlu_engine:
+            print(f"✓ Language '{language_code}' enabled")
+            self.primary_language = language_code
+
+    def add_artist_alias(self, artist_name: str, aliases: list) -> None:
+        """
+        Add artist aliases for better recognition.
+        
+        Args:
+            artist_name: Official artist name
+            aliases: List of nicknames/variations
+        """
+        if self.enable_nlu and self.entity_recognizer:
+            self.entity_recognizer.add_artist(
+                artist_name,
+                aliases,
+                language=self.primary_language,
+            )
