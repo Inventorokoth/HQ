@@ -2,12 +2,15 @@
 
 import sys
 import os
+import select
 
 # Add src to path
 #!/usr/bin/env python3
 
 import sys
 import os
+import threading
+import time
 
 # Add project root to path so `src` and `config` are importable
 PROJECT_ROOT = os.path.dirname(__file__)
@@ -70,7 +73,7 @@ class MusicStreamApp:
         print("="*50)
     
     def handle_play(self, params: dict):
-        """Handle play command."""
+        """Handle play command with auto-select after 5 seconds."""
         if 'error' in params:
             print(f"❌ {params['error']}")
             return
@@ -98,21 +101,45 @@ class MusicStreamApp:
                 print(f"{i}. {result.get('title', 'Unknown')} "
                       f"({format_duration(result.get('duration', 0))})")
             
+            # Auto-select logic: wait for user input with 5 second timeout
+            timeout_seconds = 5
+            
+            print(f"\n⏱️  Auto-selecting first result in {timeout_seconds} seconds...")
+            print(f"🎯 Select track (1-5) or 'c' to cancel: ", end='', flush=True)
+            sys.stdout.flush()
+            
+            # Use select to wait for input with timeout (Unix-only, non-blocking)
             try:
-                choice = input("\n🎯 Select track (1-5) or 'c' to cancel: ").strip()
-                if choice.lower() == 'c':
-                    return
+                ready, _, _ = select.select([sys.stdin], [], [], timeout_seconds)
                 
-                selection = int(choice) - 1
-                if 0 <= selection < len(results):
-                    video_id = results[selection]['id']
-                    self.current_track_info = results[selection]
+                if ready:
+                    # Input is available, read it
+                    choice = sys.stdin.readline().strip()
+                    if choice.lower() == 'c':
+                        print("\n❌ Cancelled")
+                        return
+                    else:
+                        try:
+                            sel = int(choice) - 1
+                            if 0 <= sel < len(results):
+                                video_id = results[sel]['id']
+                                self.current_track_info = results[sel]
+                            else:
+                                print("\n❌ Invalid selection")
+                                return
+                        except ValueError:
+                            print("\n❌ Invalid selection")
+                            return
                 else:
-                    print("❌ Invalid selection")
-                    return
-            except (ValueError, EOFError):
-                print("❌ Invalid input")
-                return
+                    # Timeout occurred - auto-select first result
+                    print(f"\n⏰ Auto-selecting: #1")
+                    video_id = results[0]['id']
+                    self.current_track_info = results[0]
+            except (OSError, select.error):
+                # select not available (Windows) or other error - fall back to auto-select
+                print(f"\n⏰ Auto-selecting: #1")
+                video_id = results[0]['id']
+                self.current_track_info = results[0]
         
         # Get audio stream URL and play
         print("🔄 Getting audio stream...")
