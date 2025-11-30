@@ -252,6 +252,17 @@ else:
         """Play audio from URL."""
         try:
             media = self.instance.media_new(url)
+            
+            # Add HTTP options for streaming URLs (especially YouTube)
+            # This is needed for proper header handling during streaming
+            if url.startswith('http'):
+                # Set User-Agent and other necessary headers for streaming
+                media.add_option('http-user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36')
+                media.add_option('http-referrer=https://www.youtube.com/')
+                media.add_option(':http-timeout=30000')  # 30 second timeout
+                media.add_option(':network-caching=5000')  # 5 second cache buffer
+                media.add_option(':http-reconnect=true')  # Auto-reconnect on failure
+            
             self.player.set_media(media)
             self.player.play()
             self.is_playing = True

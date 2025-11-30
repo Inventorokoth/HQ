@@ -65,7 +65,13 @@ class YouTubeClient:
             return []
     
     def get_audio_stream_url(self, video_id: str) -> Optional[str]:
-        """Download audio and return local file path (more reliable than streaming)."""
+        """
+        Get audio stream URL or download path.
+        
+        Strategy:
+        - Files < 10MB: Download and cache locally (faster, more reliable)
+        - Files ≥ 10MB: Stream directly (saves bandwidth and disk space)
+        """
         # Create cache directory
         cache_dir = Path.home() / '.cache' / 'music_player' / 'downloads'
         cache_dir.mkdir(parents=True, exist_ok=True)
@@ -76,6 +82,63 @@ class YouTubeClient:
             print(f"📀 Using cached: {mp3_path}")
             return str(mp3_path)
         
+        # Get file size info first (without downloading)
+        print(f"🔍 Checking file size...")
+        try:
+            info_opts = {
+                'format': 'bestaudio[ext=m4a]/bestaudio',  # Prefer m4a audio format for better compatibility
+                'quiet': True,
+                'no_warnings': True,
+                'socket_timeout': 30,
+                'skip_unavailable_fragments': True,
+            }
+            
+            with yt_dlp.YoutubeDL(info_opts) as ydl:
+                info = ydl.extract_info(video_id, download=False)
+                
+                if not info:
+                    print(f"❌ Could not get audio info")
+                    return None
+                
+                # Get file size in bytes
+                file_size_bytes = info.get('filesize') or info.get('filesize_approx', 0)
+                file_size_mb = file_size_bytes / (1024 * 1024) if file_size_bytes else 0
+                
+                # Check if we should stream or download
+                if file_size_mb >= 10:
+                    # Large file: use streaming
+                    print(f"📡 File size: {file_size_mb:.1f}MB (≥10MB) → Streaming")
+                    
+                    # Get the direct stream URL with proper format
+                    formats = info.get('formats', [])
+                    stream_url = None
+                    
+                    # Find the best audio format that VLC can handle
+                    for fmt in formats:
+                        if fmt.get('vcodec') == 'none':  # Audio only
+                            if fmt.get('ext') in ['m4a', 'webm', 'ogg', 'aac']:
+                                stream_url = fmt.get('url')
+                                if stream_url:
+                                    break
+                    
+                    # Fallback to any available URL
+                    if not stream_url:
+                        stream_url = info.get('url')
+                    
+                    if stream_url:
+                        print(f"✓ Streaming: {info.get('title', 'Unknown')}")
+                        return stream_url
+                    else:
+                        print(f"⚠️ Could not get stream URL, falling back to download...")
+                        # Fall through to download logic below
+                else:
+                    # Small file: download to cache
+                    print(f"📥 File size: {file_size_mb:.1f}MB (<10MB) → Downloading to cache")
+        
+        except Exception as e:
+            print(f"⚠️ Could not get file size info: {e}, attempting download...")
+        
+        # Download and cache the audio
         print(f"📥 Downloading audio to cache...")
         max_retries = 2
         for attempt in range(max_retries):
@@ -101,7 +164,7 @@ class YouTubeClient:
                         print(f"✓ Downloaded: {info.get('title', 'Unknown')}")
                         # Return the MP3 file path
                         if mp3_path.exists():
-                            print(f"� Cached to: {mp3_path}")
+                            print(f"📀 Cached to: {mp3_path}")
                             return str(mp3_path)
                         
             except Exception as e:
