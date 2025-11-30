@@ -161,11 +161,17 @@ class VoiceCommandListener:
 
     def voice_play_command(self) -> Optional[ParsedCommand]:
         """
-        Listen for a voice play command and parse it with NLU.
+        Listen for a voice play command and parse it with NLU with fallback chains.
+        
+        Fallback chain:
+        1. Try speech-to-text with NLU parsing
+        2. If no audio detected, prompt for text input
+        3. If confidence low (<0.7), ask user to clarify
+        4. Fall back to simple keyword matching
         
         Returns:
             ParsedCommand with intent='play' and extracted entities (artist, song, etc.)
-            or None if no command recognized.
+            or None if no command recognized after all fallbacks.
             
         Example:
             User says "cheza backbencher ya toxic" (Swahili)
@@ -176,26 +182,67 @@ class VoiceCommandListener:
                 language='sw'
             )
         """
+        # ===== FALLBACK 1: Try Speech-to-Text =====
         text = self.listen_for_command()
+        
         if not text:
+            # No text recognized, return None to let the main app retry
             return None
         
         if self.enable_nlu:
             parsed = self.parse_command_with_nlu(text)
             
-            # If intent isn't play, try to add it
+            # ===== FALLBACK 3: Confidence-Based Clarification =====
+            if parsed.confidence < 0.7 and parsed.intent != 'unknown':
+                print(f"\n🤔 Low confidence detection ({parsed.confidence:.0%})")
+                print(f"   Detected: {parsed.intent} with entities {parsed.entities}")
+                
+                confirm = input("   Is this correct? (y/n/type correct command): ").strip().lower()
+                
+                if confirm == 'n':
+                    # User wants to try again
+                    alt_text = input("   Say or type again: ").strip()
+                    if alt_text:
+                        parsed = self.parse_command_with_nlu(alt_text)
+                elif confirm and confirm not in ['y', 'n']:
+                    # User provided correction
+                    parsed = self.parse_command_with_nlu(confirm)
+            
+            # ===== FALLBACK 4: Intent Validation & Simple Matching =====
+            if parsed.intent == 'unknown' or not text:
+                print(f"⚠️  Could not determine intent confidently")
+                
+                # Try simple keyword matching as fallback
+                text_lower = text.lower() if text else ""
+                
+                if any(keyword in text_lower for keyword in ['play', 'cheza', 'ucheze']):
+                    parsed.intent = 'play'
+                    parsed.confidence = 0.5
+                    parsed.entities['query'] = text
+                    print(f"📍 Using keyword fallback: play '{text}'")
+                else:
+                    # Default to play with full text as query
+                    parsed.intent = 'play'
+                    parsed.confidence = 0.3
+                    parsed.entities['query'] = text
+                    print(f"📍 Defaulting to play with query: '{text}'")
+            
+            # If intent isn't play, try to convert it
             if parsed.intent != 'play':
                 print(f"ℹ️  Detected intent: {parsed.intent} (confidence: {parsed.confidence:.1%})")
                 
                 # If not confident about intent, default to play for this method
                 if parsed.intent == 'unknown' or parsed.confidence < 0.5:
                     parsed.intent = 'play'
-                    parsed.entities['query'] = text
+                    if 'query' not in parsed.entities:
+                        parsed.entities['query'] = text
             
-            print(f"🎯 Intent: {parsed.intent} | Entities: {parsed.entities}")
+            print(f"✅ Final: Intent={parsed.intent} | Confidence={parsed.confidence:.1%}")
+            if parsed.entities:
+                print(f"   Entities: {parsed.entities}")
             return parsed
         else:
-            # Fallback to basic parsing
+            # ===== FALLBACK 4 (No NLU): Simple Parsing =====
             if not text.startswith("play"):
                 if "play" in text:
                     idx = text.index("play")

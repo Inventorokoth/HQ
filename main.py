@@ -22,7 +22,11 @@ from src.player import MusicPlayer
 from src.command_parser import CommandParser
 from src.voice_input import VoiceCommandListener
 from src.utils import print_banner, format_duration, format_progress_bar, clear_screen
+from src.command_learning import CommandCorrectionsLogger, CommandAnalytics
+from src.command_history import CommandHistory
+from src.entity_recognizer import CommandContext
 from config.settings import settings
+import time
 
 
 class MusicStreamApp:
@@ -32,6 +36,12 @@ class MusicStreamApp:
         self.parser = CommandParser()
         self.voice_listener = VoiceCommandListener()
         self.running = False
+        
+        # Initialize new learning and history systems
+        self.corrections_logger = CommandCorrectionsLogger()
+        self.analytics = CommandAnalytics()
+        self.history = CommandHistory()
+        self.context = CommandContext()
         
         # Setup player callbacks
         self.player.on_track_change = self._on_track_change
@@ -43,6 +53,9 @@ class MusicStreamApp:
     def _on_track_change(self, title: str):
         """Handle track change event."""
         print(f"\n🎶 Now playing: {title}")
+        # Track artist in context
+        if title:
+            self.context.add_song(title)
     
     def _on_playback_end(self):
         """Handle playback end event."""
@@ -73,7 +86,10 @@ class MusicStreamApp:
         print("="*50)
     
     def handle_play(self, params: dict):
-        """Handle play command with auto-select after 5 seconds."""
+        """Handle play command with auto-select after 5 seconds and command tracking."""
+        start_time = time.time()
+        success = False
+        
         if 'error' in params:
             print(f"❌ {params['error']}")
             return
@@ -93,6 +109,7 @@ class MusicStreamApp:
             
             if not results:
                 print("❌ No results found")
+                self.analytics.record_command('play', False, time.time() - start_time)
                 return
             
             # Display results
@@ -117,6 +134,7 @@ class MusicStreamApp:
                     choice = sys.stdin.readline().strip()
                     if choice.lower() == 'c':
                         print("\n❌ Cancelled")
+                        self.analytics.record_command('play', False, time.time() - start_time)
                         return
                     else:
                         try:
@@ -126,9 +144,11 @@ class MusicStreamApp:
                                 self.current_track_info = results[sel]
                             else:
                                 print("\n❌ Invalid selection")
+                                self.analytics.record_command('play', False, time.time() - start_time)
                                 return
                         except ValueError:
                             print("\n❌ Invalid selection")
+                            self.analytics.record_command('play', False, time.time() - start_time)
                             return
                 else:
                     # Timeout occurred - auto-select first result
@@ -147,6 +167,7 @@ class MusicStreamApp:
         
         if not stream_url:
             print("❌ Could not get audio stream")
+            self.analytics.record_command('play', False, time.time() - start_time)
             return
         
         # Get track info for display
@@ -157,18 +178,43 @@ class MusicStreamApp:
         
         if self.player.play_url(stream_url, track_title):
             self.player.set_volume(settings.DEFAULT_VOLUME)
+            success = True
+            # Add to history and context
+            self.history.add('play', {'query': query}, success=True, execution_time=time.time() - start_time)
+            self.context.add_song(track_title)
         else:
             print("❌ Failed to start playback")
+        
+        self.analytics.record_command('play', success, time.time() - start_time)
     
     def handle_volume(self, params: dict):
-        """Handle volume command."""
+        """Handle volume command with tracking."""
+        start_time = time.time()
+        
         if 'error' in params:
             print(f"❌ {params['error']}")
+            self.analytics.record_command('volume', False, time.time() - start_time)
+            return
+        
+        if 'volume' not in params:
+            print(f"❌ No volume specified. Params: {params}")
+            self.analytics.record_command('volume', False, time.time() - start_time)
             return
         
         volume = params['volume']
+        if not isinstance(volume, int):
+            try:
+                volume = int(volume)
+            except (ValueError, TypeError):
+                print(f"❌ Invalid volume value: {volume}")
+                self.analytics.record_command('volume', False, time.time() - start_time)
+                return
+        
         self.player.set_volume(volume)
         print(f"🔊 Volume set to {volume}%")
+        
+        self.history.add('volume', params, success=True, execution_time=time.time() - start_time)
+        self.analytics.record_command('volume', True, time.time() - start_time)
     
     def handle_seek(self, params: dict):
         """Handle seek command."""
@@ -200,7 +246,7 @@ class MusicStreamApp:
             print(f"{i}. {result.get('title', 'Unknown')} - {duration}")
     
     def handle_voice(self):
-        """Handle voice input command with smart pause/duck and retry logic."""
+        """Handle voice input with multi-intent support and learning."""
         print("\n🎤 Activating voice control...")
         print("   (Press Ctrl+C to cancel)")
         
@@ -224,47 +270,44 @@ class MusicStreamApp:
                             if parsed_cmd.entities:
                                 print(f"   Entities: {parsed_cmd.entities}")
                             
-                            command = parsed_cmd.intent
+                            # Try multi-intent parsing
+                            intents_to_execute = self.voice_listener.nlu_engine.parse_multi_intent(
+                                parsed_cmd.original_text
+                            ) if hasattr(self.voice_listener, 'nlu_engine') else [parsed_cmd]
                             
-                            # Build params dict from ParsedCommand
-                            params = parsed_cmd.entities.copy() if parsed_cmd.entities else {}
-                            
-                            # Add query field if not present (for play/search intents)
-                            if 'query' not in params and command in ['play', 'search']:
-                                # Try to construct query from entities
-                                parts = []
-                                if 'artist' in params:
-                                    parts.append(params['artist'])
-                                if 'song' in params:
-                                    parts.append(params['song'])
-                                if 'album' in params:
-                                    parts.append(params['album'])
-                                params['query'] = ' '.join(parts) if parts else parsed_cmd.original_text
+                            for intent_cmd in intents_to_execute:
+                                command = intent_cmd.intent
+                                
+                                # Build params dict from ParsedCommand
+                                params = intent_cmd.entities.copy() if intent_cmd.entities else {}
+                                
+                                # Map NLU entity names to handler parameter names
+                                if 'level' in params:
+                                    try:
+                                        params['volume'] = int(params.pop('level'))
+                                    except (ValueError, TypeError):
+                                        print(f"❌ Could not parse volume level: {params.get('level')}")
+                                        continue
+                                
+                                # Add query field if not present (for play/search intents)
+                                if 'query' not in params and command in ['play', 'search']:
+                                    # Try to construct query from entities
+                                    parts = []
+                                    if 'artist' in params:
+                                        parts.append(params['artist'])
+                                    if 'song' in params:
+                                        parts.append(params['song'])
+                                    if 'album' in params:
+                                        parts.append(params['album'])
+                                    params['query'] = ' '.join(parts) if parts else intent_cmd.original_text
+                                
+                                # Execute the parsed command
+                                self._execute_command(command, params, intent_cmd.confidence)
                         else:
                             # It's a string from fallback mode - parse it normally
                             print(f"📝 Executing: {voice_result}")
                             command, params = self.parser.parse(str(voice_result))
-                        
-                        # Execute the parsed command
-                        if command == 'play':
-                            self.handle_play(params)
-                        elif command == 'pause':
-                            self.player.pause()
-                            print("⏸️ Playback paused")
-                        elif command == 'resume':
-                            self.player.resume()
-                            print("▶️ Playback resumed")
-                        elif command == 'stop':
-                            self.player.stop()
-                            print("⏹️ Playback stopped")
-                        elif command == 'volume':
-                            self.handle_volume(params)
-                        elif command == 'search':
-                            self.handle_search(params)
-                        elif command == 'status':
-                            self.display_status()
-                        else:
-                            print(f"❌ Voice command not recognized: {command}")
+                            self._execute_command(command, params, confidence=0.7)
                         
                         # Success! Exit retry loop
                         return
@@ -294,6 +337,45 @@ class MusicStreamApp:
         finally:
             # Always restore playback state after voice input
             self.player.restore_after_voice_input(playback_state)
+    
+    def _execute_command(self, command: str, params: dict, confidence: float = 1.0):
+        """Execute a command and track it."""
+        start_time = time.time()
+        success = True
+        
+        try:
+            if command == 'play':
+                self.handle_play(params)
+            elif command == 'pause':
+                self.player.pause()
+                print("⏸️ Playback paused")
+            elif command == 'resume':
+                self.player.resume()
+                print("▶️ Playback resumed")
+            elif command == 'stop':
+                self.player.stop()
+                print("⏹️ Playback stopped")
+            elif command == 'volume':
+                self.handle_volume(params)
+            elif command == 'search':
+                self.handle_search(params)
+            elif command == 'status':
+                self.display_status()
+            else:
+                print(f"❌ Voice command not recognized: {command}")
+                success = False
+        except Exception as e:
+            import traceback
+            print(f"❌ Command execution error: {e}")
+            traceback.print_exc()
+            success = False
+        
+        # Track in history and analytics
+        if command not in ['status', 'search', 'unknown']:
+            self.history.add(command, params, success=success, 
+                           execution_time=time.time() - start_time, 
+                           confidence=confidence)
+        self.analytics.record_command(command, success, time.time() - start_time)
     
     def run(self):
         """Main application loop."""
@@ -348,6 +430,29 @@ class MusicStreamApp:
                 
                 elif command == 'help':
                     print_banner()
+                
+                elif command == 'repeat':
+                    # Replay last command
+                    last_cmd = self.history.get_last(1)
+                    if last_cmd:
+                        last = last_cmd[0]
+                        print(f"🔄 Repeating: {last.intent} {last.entities}")
+                        self._execute_command(last.intent, last.entities)
+                    else:
+                        print("❌ No commands in history")
+                
+                elif command == 'history':
+                    self.history.print_history(limit=10)
+                
+                elif command == 'stats':
+                    # Show analytics and corrections
+                    self.analytics.print_report()
+                    print("\n")
+                    self.corrections_logger.print_report()
+                
+                elif command == 'context':
+                    # Show playback context
+                    self.context.print_context()
                 
                 elif command == 'unknown':
                     print(f"❌ Unknown command: {params.get('input', '')}")

@@ -203,8 +203,9 @@ class NLUEngine:
         entities = {}
         
         if intent == 'play':
-            # Extract song/artist name (everything after "play" keyword)
-            match = re.search(r'(?:play|cheza|ucheze|cheze)\s+(.+)', text)
+            # Extract song/artist name (everything after "play" keyword, but stop at conjunctions)
+            # Stop at 'and', 'then', or commas to avoid capturing next intent
+            match = re.search(r'(?:play|cheza|ucheze|cheze)\s+([^,]*?)(?:\s+(?:and|then)|,|$)', text)
             if match:
                 query = match.group(1).strip()
                 # Try to split into artist and song
@@ -313,6 +314,90 @@ class NLUEngine:
                 return canonical
         
         return entity_value
+    
+    def parse_multi_intent(self, text: str) -> list:
+        """
+        Parse multiple intents from a single command.
+        
+        Supports conjunctions and separators:
+        - 'and': logical AND (execute both)
+        - 'then': sequence (execute in order)
+        - ',': list (execute all)
+        
+        Examples:
+            "play toxic and set volume to 50"
+            -> [ParsedCommand(intent='play', ...), ParsedCommand(intent='volume', ...)]
+            
+            "play backbencher, then pause after 30 seconds"
+            -> [ParsedCommand(intent='play', ...), ParsedCommand(intent='pause', ...)]
+        
+        Args:
+            text: Input text that may contain multiple intents
+            
+        Returns:
+            List of ParsedCommand objects, one per detected intent
+        """
+        # Split by conjunctions/operators
+        # Order matters: try longer patterns first
+        separators = [
+            (r'\s+and\s+', 'AND'),
+            (r'\s+then\s+', 'THEN'),
+            (r',\s*', 'COMMA'),
+        ]
+        
+        # Find first separator
+        first_sep = None
+        sep_pos = len(text)
+        sep_type = None
+        
+        for pattern, sep_name in separators:
+            match = re.search(pattern, text)
+            if match and match.start() < sep_pos:
+                sep_pos = match.start()
+                first_sep = pattern
+                sep_type = sep_name
+        
+        # If no separator found, return single intent
+        if first_sep is None:
+            return [self.parse(text)]
+        
+        # Split on first separator and recursively parse
+        parts = re.split(first_sep, text, maxsplit=1)
+        results = []
+        
+        for part in parts:
+            part = part.strip()
+            if part:
+                # Recursively parse each part
+                parsed = self.parse_multi_intent(part)
+                results.extend(parsed)
+        
+        return results
+    
+    def suggest_next_intent(self, current_intent: str) -> Optional[str]:
+        """
+        Suggest a logical next intent based on common patterns.
+        
+        Examples:
+            'play' often followed by 'volume' adjustment
+            'search' often followed by 'play'
+        
+        Args:
+            current_intent: Current intent
+            
+        Returns:
+            Suggested next intent or None
+        """
+        patterns = {
+            'play': ['volume', 'seek', 'status'],
+            'search': ['play', 'status'],
+            'resume': ['volume', 'seek'],
+            'pause': ['resume', 'status'],
+            'volume': ['play', 'seek'],
+        }
+        
+        suggestions = patterns.get(current_intent, [])
+        return suggestions[0] if suggestions else None
 
 
 # Preset configurations for common languages

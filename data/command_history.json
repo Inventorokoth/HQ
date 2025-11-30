@@ -1,0 +1,346 @@
+[
+  {
+    "timestamp": "2025-12-01T01:12:20.007482",
+    "intent": "play",
+    "entities": {
+      "query": "chalice"
+    },
+    "success": true,
+    "execution_time": 41.96507477760315,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:12:20.008222",
+    "intent": "play",
+    "entities": {
+      "query": "chalice"
+    },
+    "success": true,
+    "execution_time": 41.96581816673279,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:12:24.674915",
+    "intent": "volume",
+    "entities": {
+      "volume": 34
+    },
+    "success": true,
+    "execution_time": 0.0001990795135498047,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:15:09.741152",
+    "intent": "play",
+    "entities": {
+      "query": "chalice"
+    },
+    "success": true,
+    "execution_time": 32.14687728881836,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:15:09.741959",
+    "intent": "play",
+    "entities": {
+      "query": "chalice"
+    },
+    "success": true,
+    "execution_time": 32.147690773010254,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:15:15.999737",
+    "intent": "volume",
+    "entities": {
+      "volume": 54
+    },
+    "success": true,
+    "execution_time": 0.0001227855682373047,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:15:52.531374",
+    "intent": "volume",
+    "entities": {
+      "volume": 54
+    },
+    "success": true,
+    "execution_time": 0.0004951953887939453,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:15:52.535007",
+    "intent": "volume",
+    "entities": {
+      "volume": 54
+    },
+    "success": true,
+    "execution_time": 0.004135847091674805,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:16:31.429024",
+    "intent": "pause",
+    "entities": {},
+    "success": true,
+    "execution_time": 0.00018548965454101562,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:16:54.945340",
+    "intent": "resume",
+    "entities": {},
+    "success": true,
+    "execution_time": 0.00016641616821289062,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:17:21.097173",
+    "intent": "volume",
+    "entities": {},
+    "success": false,
+    "execution_time": 2.765655517578125e-05,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:17:41.167784",
+    "intent": "volume",
+    "entities": {},
+    "success": false,
+    "execution_time": 0.0002582073211669922,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:18:26.936727",
+    "intent": "volume",
+    "entities": {},
+    "success": false,
+    "execution_time": 2.2172927856445312e-05,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:20:38.119349",
+    "intent": "volume",
+    "entities": {},
+    "success": false,
+    "execution_time": 2.4318695068359375e-05,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:20:58.076125",
+    "intent": "volume",
+    "entities": {},
+    "success": false,
+    "execution_time": 2.2649765014648438e-05,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:21:13.996854",
+    "intent": "volume",
+    "entities": {},
+    "success": false,
+    "execution_time": 3.600120544433594e-05,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:21:35.357286",
+    "intent": "volume",
+    "entities": {
+      "level": "30"
+    },
+    "success": false,
+    "execution_time": 6.508827209472656e-05,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:22:02.290088",
+    "intent": "volume",
+    "entities": {
+      "volume": 30
+    },
+    "success": true,
+    "execution_time": 0.00010943412780761719,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:22:57.892103",
+    "intent": "volume",
+    "entities": {
+      "level": "30"
+    },
+    "success": false,
+    "execution_time": 1.9073486328125e-05,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:23:56.567630",
+    "intent": "volume",
+    "entities": {
+      "level": "30"
+    },
+    "success": false,
+    "execution_time": 1.6927719116210938e-05,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:24:19.301002",
+    "intent": "volume",
+    "entities": {
+      "volume": 30
+    },
+    "success": true,
+    "execution_time": 0.00013685226440429688,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:24:19.302224",
+    "intent": "volume",
+    "entities": {
+      "volume": 30
+    },
+    "success": true,
+    "execution_time": 0.001361846923828125,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:25:16.813081",
+    "intent": "play",
+    "entities": {
+      "query": "sia cheap thrills"
+    },
+    "success": true,
+    "execution_time": 7.743746757507324,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:25:16.815256",
+    "intent": "play",
+    "entities": {
+      "query": "sia cheap thrills"
+    },
+    "success": true,
+    "execution_time": 7.745927333831787,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:25:16.837157",
+    "intent": "volume",
+    "entities": {},
+    "success": true,
+    "execution_time": 0.0007722377777099609,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:25:50.781239",
+    "intent": "volume",
+    "entities": {
+      "volume": 30
+    },
+    "success": true,
+    "execution_time": 0.00027108192443847656,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:28:21.809112",
+    "intent": "volume",
+    "entities": {},
+    "success": true,
+    "execution_time": 0.0007357597351074219,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:29:23.477065",
+    "intent": "play",
+    "entities": {
+      "query": "sia cheap thrills"
+    },
+    "success": true,
+    "execution_time": 7.599417448043823,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:29:23.479204",
+    "intent": "play",
+    "entities": {
+      "query": "sia cheap thrills"
+    },
+    "success": true,
+    "execution_time": 7.601566553115845,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:29:23.481545",
+    "intent": "volume",
+    "entities": {},
+    "success": true,
+    "execution_time": 0.0004646778106689453,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:29:53.491249",
+    "intent": "volume",
+    "entities": {
+      "volume": 20
+    },
+    "success": true,
+    "execution_time": 0.0005772113800048828,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:30:15.041010",
+    "intent": "volume",
+    "entities": {},
+    "success": true,
+    "execution_time": 0.0006930828094482422,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:30:27.124771",
+    "intent": "volume",
+    "entities": {},
+    "success": true,
+    "execution_time": 0.0004410743713378906,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:31:14.637866",
+    "intent": "volume",
+    "entities": {
+      "volume": 50
+    },
+    "success": true,
+    "execution_time": 0.00016164779663085938,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:31:14.642627",
+    "intent": "volume",
+    "entities": {
+      "volume": 50
+    },
+    "success": true,
+    "execution_time": 0.0049419403076171875,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:31:31.884844",
+    "intent": "volume",
+    "entities": {
+      "volume": 50
+    },
+    "success": true,
+    "execution_time": 0.00049591064453125,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-01T01:31:31.888240",
+    "intent": "volume",
+    "entities": {
+      "volume": 50
+    },
+    "success": true,
+    "execution_time": 0.0038940906524658203,
+    "confidence": 1.0
+  }
+]

@@ -7,11 +7,13 @@ Handles:
 - Context phrases (e.g., "ya" in Swahili = "from/by")
 - Fuzzy matching for misspellings
 - Language-specific patterns
+- Contextual entity disambiguation
 """
 
 import re
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
+from collections import deque
 
 
 @dataclass
@@ -444,3 +446,199 @@ class EntityRecognizer:
         
         # Combined score
         return (common / max_len) * 0.3 + length_sim * 0.3 + char_sim * 0.4
+
+
+class CommandContext:
+    """
+    Track command context for disambiguating entities.
+    
+    Examples:
+        If user recently played 'Backbencher', and now says "play toxic",
+        we can infer it's "Toxic by Backbencher" from context.
+    """
+    
+    def __init__(self, max_recent: int = 10):
+        """
+        Initialize command context tracker.
+        
+        Args:
+            max_recent: Number of recent items to track
+        """
+        self.recent_artists = deque(maxlen=max_recent)
+        self.recent_songs = deque(maxlen=max_recent)
+        self.recent_albums = deque(maxlen=max_recent)
+        self.user_favorites = {}  # artist/song -> play count
+        self.playback_history = deque(maxlen=100)  # Full playback history
+    
+    def add_artist(self, artist: str):
+        """Track recently played artist."""
+        self.recent_artists.appendleft(artist)
+        self.user_favorites[artist] = self.user_favorites.get(artist, 0) + 1
+    
+    def add_song(self, song: str, artist: Optional[str] = None):
+        """Track recently played song."""
+        self.recent_songs.appendleft(song)
+        key = f"{artist}/{song}" if artist else song
+        self.user_favorites[key] = self.user_favorites.get(key, 0) + 1
+        
+        if artist:
+            self.add_artist(artist)
+    
+    def add_album(self, album: str):
+        """Track recently played album."""
+        self.recent_albums.appendleft(album)
+    
+    def suggest_artist_from_context(self, partial_query: str) -> Optional[str]:
+        """
+        Suggest artist from recently played items.
+        
+        If user says "play toxic" and recently played Backbencher,
+        suggest that "toxic" might be from Backbencher.
+        
+        Args:
+            partial_query: Song or query fragment
+            
+        Returns:
+            Suggested artist or None
+        """
+        partial_lower = partial_query.lower()
+        
+        # Check if any recent artist might have this song
+        for artist in self.recent_artists:
+            # This is a heuristic - in real implementation,
+            # would check against a music database
+            if artist.lower().startswith(partial_lower[:2]):
+                return artist
+        
+        # Check favorites for most played artist
+        if self.user_favorites:
+            favorite_artist = max(self.user_favorites.items(), key=lambda x: x[1])[0]
+            if '/' not in favorite_artist:  # It's an artist, not a song
+                return favorite_artist
+        
+        return None
+    
+    def suggest_entity_from_context(self, entity_type: str) -> Optional[str]:
+        """
+        Get most recently used entity of a type.
+        
+        Useful when entity wasn't clearly recognized.
+        
+        Args:
+            entity_type: 'artist', 'song', or 'album'
+            
+        Returns:
+            Most recent entity of this type or None
+        """
+        if entity_type == 'artist' and self.recent_artists:
+            return self.recent_artists[0]
+        elif entity_type == 'song' and self.recent_songs:
+            return self.recent_songs[0]
+        elif entity_type == 'album' and self.recent_albums:
+            return self.recent_albums[0]
+        
+        return None
+    
+    def get_top_favorites(self, entity_type: str = 'artist', limit: int = 5) -> List[str]:
+        """
+        Get top favorite artists or songs.
+        
+        Args:
+            entity_type: 'artist' or 'song'
+            limit: Number to return
+            
+        Returns:
+            List of top favorites
+        """
+        # Filter by type (songs have '/' in their key)
+        if entity_type == 'artist':
+            favorites = {k: v for k, v in self.user_favorites.items() if '/' not in k}
+        else:
+            favorites = {k: v for k, v in self.user_favorites.items() if '/' in k}
+        
+        if not favorites:
+            return []
+        
+        return [k for k, v in sorted(favorites.items(), key=lambda x: x[1], reverse=True)][:limit]
+    
+    def disambiguate_entity(
+        self,
+        partial_entity: str,
+        entity_type: str = 'artist',
+        candidates: Optional[List[str]] = None
+    ) -> Optional[str]:
+        """
+        Disambiguate entity using context.
+        
+        Example:
+            If user says "play toxic" with partial recognition,
+            and context shows Backbencher was recently played,
+            we can disambiguate that it's "Toxic by Backbencher"
+        
+        Args:
+            partial_entity: Partial or ambiguous entity
+            entity_type: Type of entity
+            candidates: List of possible candidates
+            
+        Returns:
+            Best disambiguated entity or None
+        """
+        partial_lower = partial_entity.lower()
+        
+        # Try to find in recent history first
+        if entity_type == 'artist':
+            recent = list(self.recent_artists)
+        elif entity_type == 'song':
+            recent = list(self.recent_songs)
+        elif entity_type == 'album':
+            recent = list(self.recent_albums)
+        else:
+            recent = []
+        
+        # Check recent items
+        for item in recent:
+            if item.lower().startswith(partial_lower):
+                return item
+        
+        # Check candidates
+        if candidates:
+            for candidate in candidates:
+                if candidate.lower().startswith(partial_lower):
+                    return candidate
+        
+        # Check favorites
+        favorites = self.get_top_favorites(entity_type, limit=10)
+        for fav in favorites:
+            if fav.lower().startswith(partial_lower):
+                return fav
+        
+        return None
+    
+    def to_dict(self) -> Dict:
+        """Export context as dictionary."""
+        return {
+            'recent_artists': list(self.recent_artists),
+            'recent_songs': list(self.recent_songs),
+            'recent_albums': list(self.recent_albums),
+            'user_favorites': self.user_favorites,
+            'playback_count': len(self.playback_history),
+        }
+    
+    def print_context(self):
+        """Print current context state."""
+        print("\n" + "="*60)
+        print("🎵 Playback Context")
+        print("="*60)
+        
+        if self.recent_artists:
+            print(f"Recent Artists: {', '.join(list(self.recent_artists)[:3])}")
+        
+        if self.recent_songs:
+            print(f"Recent Songs: {', '.join(list(self.recent_songs)[:3])}")
+        
+        if self.user_favorites:
+            top_favorites = sorted(self.user_favorites.items(), key=lambda x: x[1], reverse=True)[:3]
+            print(f"Top Favorites: {', '.join([k for k, v in top_favorites])}")
+        
+        print(f"Total Plays: {len(self.playback_history)}")
+        print("="*60)
