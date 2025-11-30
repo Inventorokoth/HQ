@@ -243,3 +243,43 @@ class VoiceCommandListener:
                 aliases,
                 language=self.primary_language,
             )
+
+    def test_command(self, text: str) -> Optional[ParsedCommand]:
+        """
+        Test voice command with simulated text input (no STT).
+        
+        Useful for:
+        - Testing NLU without microphone
+        - Testing Swahili commands reliably
+        - Debugging voice parsing
+        
+        Args:
+            text: Command text to parse (simulates what STT would produce)
+            
+        Returns:
+            ParsedCommand with intent, entities, and confidence
+            
+        Example:
+            listener.test_command("cheza backbencher ya toxic")
+            # Returns ParsedCommand(intent='play', entities={'artist': 'Backbencher', 'song': 'Toxic'})
+        """
+        print(f"🧪 Test Mode: '{text}'")
+        
+        if not self.enable_nlu:
+            print("❌ NLU not enabled")
+            return None
+        
+        # Parse with NLU
+        parsed = self.parse_command_with_nlu(text)
+        
+        print(f"\n📊 Parsing Result:")
+        print(f"   Intent: {parsed.intent}")
+        print(f"   Language: {parsed.language}")
+        print(f"   Confidence: {parsed.confidence:.1%}")
+        
+        if parsed.entities:
+            print(f"   Entities:")
+            for key, value in parsed.entities.items():
+                print(f"     • {key}: {value}")
+        
+        return parsed
