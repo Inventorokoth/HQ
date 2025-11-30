@@ -200,62 +200,93 @@ class MusicStreamApp:
             print(f"{i}. {result.get('title', 'Unknown')} - {duration}")
     
     def handle_voice(self):
-        """Handle voice input command."""
+        """Handle voice input command with retry logic."""
         print("\n🎤 Activating voice control...")
-        voice_result = self.voice_listener.voice_play_command()
+        print("   (Press Ctrl+C to cancel)")
         
-        if voice_result:
-            # Check if we got a ParsedCommand object from NLU
-            if hasattr(voice_result, 'intent'):
-                # It's a ParsedCommand from NLU
-                parsed_cmd = voice_result
-                print(f"📝 Intent: {parsed_cmd.intent} | Confidence: {parsed_cmd.confidence:.1%}")
-                if parsed_cmd.entities:
-                    print(f"   Entities: {parsed_cmd.entities}")
+        max_retries = 2
+        retry_count = 0
+        
+        while retry_count <= max_retries:
+            try:
+                voice_result = self.voice_listener.voice_play_command()
                 
-                command = parsed_cmd.intent
+                if voice_result:
+                    # Check if we got a ParsedCommand object from NLU
+                    if hasattr(voice_result, 'intent'):
+                        # It's a ParsedCommand from NLU
+                        parsed_cmd = voice_result
+                        print(f"📝 Intent: {parsed_cmd.intent} | Confidence: {parsed_cmd.confidence:.1%}")
+                        if parsed_cmd.entities:
+                            print(f"   Entities: {parsed_cmd.entities}")
+                        
+                        command = parsed_cmd.intent
+                        
+                        # Build params dict from ParsedCommand
+                        params = parsed_cmd.entities.copy() if parsed_cmd.entities else {}
+                        
+                        # Add query field if not present (for play/search intents)
+                        if 'query' not in params and command in ['play', 'search']:
+                            # Try to construct query from entities
+                            parts = []
+                            if 'artist' in params:
+                                parts.append(params['artist'])
+                            if 'song' in params:
+                                parts.append(params['song'])
+                            if 'album' in params:
+                                parts.append(params['album'])
+                            params['query'] = ' '.join(parts) if parts else parsed_cmd.original_text
+                    else:
+                        # It's a string from fallback mode - parse it normally
+                        print(f"📝 Executing: {voice_result}")
+                        command, params = self.parser.parse(str(voice_result))
+                    
+                    # Execute the parsed command
+                    if command == 'play':
+                        self.handle_play(params)
+                    elif command == 'pause':
+                        self.player.pause()
+                        print("⏸️ Playback paused")
+                    elif command == 'resume':
+                        self.player.resume()
+                        print("▶️ Playback resumed")
+                    elif command == 'stop':
+                        self.player.stop()
+                        print("⏹️ Playback stopped")
+                    elif command == 'volume':
+                        self.handle_volume(params)
+                    elif command == 'search':
+                        self.handle_search(params)
+                    elif command == 'status':
+                        self.display_status()
+                    else:
+                        print(f"❌ Voice command not recognized: {command}")
+                    
+                    # Success! Exit retry loop
+                    return
+                else:
+                    # No voice result - check if we should retry
+                    retry_count += 1
+                    
+                    if retry_count <= max_retries:
+                        print(f"\n⚠️  Retry {retry_count}/{max_retries}...")
+                        print("   (Make sure to speak clearly and wait for the 'Listening' prompt)")
+                    else:
+                        print("\n❌ Could not process voice input after multiple attempts")
+                        print("   Tip: Use test mode to verify NLU works: python examples/test_voice_nlu.py")
+                        return
+                        
+            except KeyboardInterrupt:
+                print("\n\n❌ Voice input cancelled")
+                return
+            except Exception as e:
+                print(f"\n❌ Error: {e}")
+                retry_count += 1
                 
-                # Build params dict from ParsedCommand
-                params = parsed_cmd.entities.copy() if parsed_cmd.entities else {}
-                
-                # Add query field if not present (for play/search intents)
-                if 'query' not in params and command in ['play', 'search']:
-                    # Try to construct query from entities
-                    parts = []
-                    if 'artist' in params:
-                        parts.append(params['artist'])
-                    if 'song' in params:
-                        parts.append(params['song'])
-                    if 'album' in params:
-                        parts.append(params['album'])
-                    params['query'] = ' '.join(parts) if parts else parsed_cmd.original_text
-            else:
-                # It's a string from fallback mode - parse it normally
-                print(f"📝 Executing: {voice_result}")
-                command, params = self.parser.parse(str(voice_result))
-            
-            # Execute the parsed command
-            if command == 'play':
-                self.handle_play(params)
-            elif command == 'pause':
-                self.player.pause()
-                print("⏸️ Playback paused")
-            elif command == 'resume':
-                self.player.resume()
-                print("▶️ Playback resumed")
-            elif command == 'stop':
-                self.player.stop()
-                print("⏹️ Playback stopped")
-            elif command == 'volume':
-                self.handle_volume(params)
-            elif command == 'search':
-                self.handle_search(params)
-            elif command == 'status':
-                self.display_status()
-            else:
-                print(f"❌ Voice command not recognized: {command}")
-        else:
-            print("❌ Could not process voice input")
+                if retry_count <= max_retries:
+                    print(f"⚠️  Retry {retry_count}/{max_retries}...")
+                else:
+                    return
     
     def run(self):
         """Main application loop."""

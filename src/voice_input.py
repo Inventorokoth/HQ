@@ -33,8 +33,18 @@ class VoiceCommandListener:
             primary_language: Primary language for NLU (default: 'sw' for Swahili)
         """
         self.recognizer = sr.Recognizer()
-        self.recognizer.energy_threshold = 4000  # Adjust sensitivity
+        
+        # Tuned settings for better voice recognition:
+        # - energy_threshold: Lower = more sensitive to quiet voices (default 300)
+        # - dynamic_energy_threshold: Adjust threshold based on noise
+        self.recognizer.energy_threshold = 2000  # Moderate sensitivity (not 4000 which is too strict)
         self.recognizer.dynamic_energy_threshold = True
+        
+        # Pause threshold: seconds of silence after speech ends before processing
+        # Higher value = waits longer for speaker to finish (better for natural speech)
+        self.recognizer.pause_threshold = 1.8  # Wait 1.8 seconds of silence before deciding speech ended
+        self.recognizer.non_speaking_duration = 0.7  # More time before detecting start of speech
+        self.recognizer.operation_timeout = 7  # Timeout for entire listen operation
         
         # Initialize NLU if enabled
         self.enable_nlu = enable_nlu
@@ -57,13 +67,31 @@ class VoiceCommandListener:
         """
         try:
             with sr.Microphone() as source:
-                print("\n🎤 Listening... (speak now)")
+                print("\n🎤 Listening... (speak your command)")
                 
                 # Adjust recognizer for ambient noise
-                self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
+                # Longer duration for better noise profile (avoids cutting off early)
+                self.recognizer.adjust_for_ambient_noise(source, duration=1.0)
                 
-                # Record audio
-                audio = self.recognizer.listen(source, timeout=timeout, phrase_time_limit=15)
+                # Keep energy threshold at moderate level
+                self.recognizer.energy_threshold = 2000
+                
+                try:
+                    # Listen with better timing:
+                    # - timeout: max seconds to wait for sound to START
+                    # - phrase_time_limit: max seconds to RECORD once phrase starts
+                    # - Increased phrase_time_limit to allow natural speech pauses
+                    audio = self.recognizer.listen(
+                        source, 
+                        timeout=timeout,              # How long to wait for sound to start (10 sec)
+                        phrase_time_limit=15          # Max recording duration (was 5, now 15 for longer speech)
+                    )
+                except sr.RequestError as e:
+                    print(f"❌ Listening error: {e}")
+                    return None
+                except sr.UnknownValueError as e:
+                    print(f"❌ Listening timed out: {e}")
+                    return None
                 
             print("🔄 Processing speech...")
             
