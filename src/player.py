@@ -167,6 +167,65 @@ if _HAS_VLC:
                 'duration': self.duration,
                 'current_track': self.current_media
             }
+        
+        def get_remaining_time(self) -> float:
+            """Get remaining playback time in seconds."""
+            if self.duration > 0:
+                remaining = self.duration - (self.position * self.duration)
+                return max(0, remaining)
+            return 0.0
+        
+        def prepare_for_voice_input(self) -> Dict:
+            """
+            Smart pause/duck strategy for voice listening.
+            
+            Strategy:
+            - If ≤30 seconds remaining: PAUSE (so command can execute quickly)
+            - If >30 seconds remaining: DUCK to 30% (music continues, but quieter)
+            
+            Returns:
+                Dict with action taken: {'action': 'pause'|'duck', 'was_playing': bool, 'original_volume': int}
+            """
+            state = {
+                'action': 'none',
+                'was_playing': self.is_playing,
+                'original_volume': self.volume,
+                'original_position': self.position,
+            }
+            
+            if not self.is_playing:
+                return state
+            
+            remaining_time = self.get_remaining_time()
+            
+            if remaining_time <= 30:
+                # Song ending soon - pause completely for quick command execution
+                self.pause()
+                state['action'] = 'pause'
+                print(f"⏸️  Music paused for voice command ({remaining_time:.0f}s remaining)")
+            else:
+                # Song has time - duck volume to 30% for voice isolation
+                self.set_volume(30)
+                state['action'] = 'duck'
+                print(f"🔉 Music ducked to 30% for voice listening ({remaining_time:.0f}s remaining)")
+            
+            return state
+        
+        def restore_after_voice_input(self, state: Dict) -> None:
+            """
+            Restore playback state after voice command processing.
+            
+            Args:
+                state: Dict returned from prepare_for_voice_input()
+            """
+            if state.get('action') == 'pause':
+                # Resume playback
+                self.resume()
+                print(f"▶️  Resuming music...")
+            elif state.get('action') == 'duck':
+                # Restore original volume
+                self.set_volume(state['original_volume'])
+                print(f"🔊 Volume restored to {state['original_volume']}%")
 else:
     # Fallback simulated player for environments without libVLC
     class MusicPlayer:
@@ -227,6 +286,56 @@ else:
                 'duration': self.duration,
                 'current_track': self.current_media
             }
+        
+        def get_remaining_time(self) -> float:
+            """Get remaining playback time in seconds."""
+            if self.duration > 0:
+                remaining = self.duration - (self.position * self.duration)
+                return max(0, remaining)
+            return 0.0
+        
+        def prepare_for_voice_input(self) -> Dict:
+            """
+            Smart pause/duck strategy for voice listening (simulated version).
+            
+            Strategy:
+            - If ≤30 seconds remaining: PAUSE
+            - If >30 seconds remaining: DUCK to 30%
+            
+            Returns:
+                Dict with action taken
+            """
+            state = {
+                'action': 'none',
+                'was_playing': self.is_playing,
+                'original_volume': self.volume,
+                'original_position': self.position,
+            }
+            
+            if not self.is_playing:
+                return state
+            
+            remaining_time = self.get_remaining_time()
+            
+            if remaining_time <= 30:
+                self.pause()
+                state['action'] = 'pause'
+                print(f"⏸️  Music paused for voice command ({remaining_time:.0f}s remaining)")
+            else:
+                self.set_volume(30)
+                state['action'] = 'duck'
+                print(f"🔉 Music ducked to 30% for voice listening ({remaining_time:.0f}s remaining)")
+            
+            return state
+        
+        def restore_after_voice_input(self, state: Dict) -> None:
+            """Restore playback state after voice command processing."""
+            if state.get('action') == 'pause':
+                self.resume()
+                print(f"▶️  Resuming music...")
+            elif state.get('action') == 'duck':
+                self.set_volume(state['original_volume'])
+                print(f"🔊 Volume restored to {state['original_volume']}%")
     
     def _on_playback_end(self, event):
         """Handle playback end event."""
