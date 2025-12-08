@@ -1,22 +1,6 @@
-impoclass CommandParser:
-    def __init__(self):
-        self.commands = {
-            'play': self._parse_play,
-            'pause': self._parse_simple,
-            'resume': self._parse_simple,
-            'stop': self._parse_simple,
-            'volume': self._parse_volume,
-            'seek': self._parse_seek,
-            'search': self._parse_search,
-            'status': self._parse_simple,
-            'help': self._parse_simple,
-            'voice': self._parse_simple,
-            'repeat': self._parse_simple,
-            'history': self._parse_simple,
-            'stats': self._parse_simple,
-            'context': self._parse_simple,
-            'exit': self._parse_simple,
-        }from typing import Dict, List, Tuple, Optional
+import re
+import shlex
+from typing import Dict, List, Tuple, Optional
 
 class CommandParser:
     def __init__(self):
@@ -35,6 +19,9 @@ class CommandParser:
             'history': self._parse_simple,
             'stats': self._parse_simple,
             'context': self._parse_simple,
+            'listen': self._parse_simple,
+            'nolisten': self._parse_simple,
+            'wake_stats': self._parse_simple,
             'exit': self._parse_simple,
         }
     

@@ -25,6 +25,7 @@ from src.utils import print_banner, format_duration, format_progress_bar, clear_
 from src.command_learning import CommandCorrectionsLogger, CommandAnalytics
 from src.command_history import CommandHistory
 from src.entity_recognizer import CommandContext
+from src.wake_word_detector import WakeWordDetector
 from config.settings import settings
 import time
 
@@ -43,6 +44,14 @@ class MusicStreamApp:
         self.history = CommandHistory()
         self.context = CommandContext()
         
+        # Initialize wake-word detector
+        self.wake_detector = WakeWordDetector(
+            wake_word="HQ",
+            callback=self._on_wake_word_detected,
+            debug=True  # Enable debug output to see what's being heard
+        )
+        self.wake_word_active = False
+        
         # Setup player callbacks
         self.player.on_track_change = self._on_track_change
         self.player.on_playback_end = self._on_playback_end
@@ -56,6 +65,16 @@ class MusicStreamApp:
         # Track artist in context
         if title:
             self.context.add_song(title)
+    
+    def _on_wake_word_detected(self):
+        """Handle wake-word detection."""
+        print("\n" + "🎤 " * 15)
+        print("🎤 WAKE WORD DETECTED - ACTIVATING VOICE COMMANDS 🎤")
+        print("🎤 " * 15 + "\n")
+        self.wake_word_active = True
+        # Automatically trigger voice command handling
+        self.handle_voice()
+        self.wake_word_active = False
     
     def _on_playback_end(self):
         """Handle playback end event."""
@@ -453,6 +472,26 @@ class MusicStreamApp:
                 elif command == 'context':
                     # Show playback context
                     self.context.print_context()
+                
+                elif command == 'listen':
+                    # Start wake-word detection
+                    if not self.wake_detector.listening:
+                        self.wake_detector.start()
+                        print("🎤 Always-on listening activated (say 'HQ' to activate voice commands)")
+                    else:
+                        print("⚠️  Wake-word detector already running")
+                
+                elif command == 'nolisten':
+                    # Stop wake-word detection
+                    if self.wake_detector.listening:
+                        self.wake_detector.stop()
+                        print("🛑 Always-on listening deactivated")
+                    else:
+                        print("⚠️  Wake-word detector not running")
+                
+                elif command == 'wake_stats':
+                    # Show wake-word statistics
+                    self.wake_detector.print_statistics()
                 
                 elif command == 'unknown':
                     print(f"❌ Unknown command: {params.get('input', '')}")

@@ -42,6 +42,13 @@ def print_banner():
       search <query>     - Search for music
       status             - Show player status
       voice              - Voice control (speak commands)
+      repeat             - Repeat last command
+      history            - Show command history
+      stats              - Show analytics & corrections
+      context            - Show playback context
+      listen             - Start always-on listening (wake word: "HQ")
+      nolisten           - Stop always-on listening
+      wake_stats         - Show wake-word detector stats
       help               - Show this help
       exit               - Exit application
     =========================

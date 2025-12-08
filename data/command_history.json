@@ -342,5 +342,81 @@
     "success": true,
     "execution_time": 0.0038940906524658203,
     "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-08T19:06:40.755673",
+    "intent": "play",
+    "entities": {
+      "query": "bruno"
+    },
+    "success": true,
+    "execution_time": 62.46121001243591,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-08T19:06:40.841540",
+    "intent": "play",
+    "entities": {
+      "query": "bruno"
+    },
+    "success": true,
+    "execution_time": 62.5470871925354,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-08T19:07:13.782190",
+    "intent": "pause",
+    "entities": {},
+    "success": true,
+    "execution_time": 0.00016832351684570312,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-08T19:08:38.481977",
+    "intent": "play",
+    "entities": {
+      "query": "play"
+    },
+    "success": true,
+    "execution_time": 28.24225878715515,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-08T19:12:24.867619",
+    "intent": "play",
+    "entities": {
+      "query": "play"
+    },
+    "success": true,
+    "execution_time": 62.40432572364807,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-08T19:13:01.216089",
+    "intent": "play",
+    "entities": {
+      "query": "green"
+    },
+    "success": true,
+    "execution_time": 11.580936431884766,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-08T19:13:01.217872",
+    "intent": "play",
+    "entities": {
+      "query": "green"
+    },
+    "success": true,
+    "execution_time": 11.58272385597229,
+    "confidence": 1.0
+  },
+  {
+    "timestamp": "2025-12-08T19:14:18.646314",
+    "intent": "pause",
+    "entities": {},
+    "success": true,
+    "execution_time": 0.0003304481506347656,
+    "confidence": 1.0
   }
 ]
